@@ -1,16 +1,21 @@
+<!-- CraftLinks 2023-->
 <!DOCTYPE html>
 <html>
 
 <head>
-  <link rel="stylesheet" type="text/css" href="styles.css">
-  <title>TypeScript Browser Template</title>
-  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" type="text/css" href="commonStyle.css">
+  <!--Contains the template HTML snippets -->
+  <script type="text/javascript" src="src/html-snippets.js"></script>
+  <title>Learn WebGPU Fundamentals</title>
 </head>
 
 <body>
-<h1>TypeScript Browser Template Project</h1>
-
-
+  <div id="headerSnippet"></div>
+  <script>document.getElementById('headerSnippet').innerHTML = header();</script>
+  <!-- Buttons linking to simulations -->
+  <div id="navigationButtons"></div>
+  <script>document.getElementById('navigationButtons').innerHTML = navigationButtons();</script>
   <script type="text/javascript" src="src/main.js"></script>
 </body>
 
