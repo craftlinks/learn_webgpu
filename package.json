@@ -1,0 +1,27 @@
+{
+  "name": "typescript-starter",
+  "version": "0.0.1",
+  "description": "Typescript Template",
+  "main": "main.ts",
+  "scripts": {
+    "build": "tsc --watch"
+  },
+  "keywords": [
+    "typescript"
+  ],
+  "author": "CraftLinks",
+  "license": "ISC",
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^5.62.0",
+    "@typescript-eslint/parser": "^5.62.0",
+    "eslint": "^8.45.0",
+    "eslint-config-standard-with-typescript": "^36.1.0",
+    "eslint-plugin-import": "^2.27.5",
+    "eslint-plugin-n": "^15.7.0",
+    "eslint-plugin-promise": "^6.1.1",
+    "typescript": "^5.1.6"
+  },
+  "dependencies": {
+    "@webgpu/types": "^0.1.32"
+  }
+}
