@@ -8,6 +8,15 @@ async function main (): Promise<void> {
     throw new Error('WebGPU is not supported')
   }
 
+  // Handle device lost
+  void device.lost.then((info) => {
+    console.error('WebGPU device lost: ', info.message)
+    if (info.reason !== 'destroyed') {
+      // Try again
+      void main()
+    }
+  })
+
   // Create and configure the canvas
   const canvas = document.createElement('canvas')
   canvas.width = canvas.height = 600
