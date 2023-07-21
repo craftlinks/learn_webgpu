@@ -1,6 +1,6 @@
 import { loadFile } from '../utils.js'
 
-async function main(): Promise<void> {
+async function main (): Promise<void> {
   // Initialize WebGPU
   const adapter = await navigator.gpu?.requestAdapter()
   const device = await adapter?.requestDevice()
@@ -59,6 +59,7 @@ async function main(): Promise<void> {
 
   // Render the triangle
   const render = (): void => {
+    renderPassDescriptor.colorAttachments[Symbol.iterator]().next().value.view = context.getCurrentTexture().createView() // For Canvas resize
     const commandEncoder = device.createCommandEncoder()
     const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor)
     passEncoder.setPipeline(pipeline)
@@ -68,7 +69,18 @@ async function main(): Promise<void> {
     device.queue.submit([commandBuffer])
   }
 
-  render()
+  const resizeObserver = new ResizeObserver((entries) => {
+    for (const entry of entries) {
+      const canvas = entry.target as HTMLCanvasElement
+      const width = entry.contentBoxSize[0].inlineSize
+      const height = entry.contentBoxSize[0].blockSize
+      canvas.width = Math.max(1, Math.min(width, device.limits.maxTextureDimension2D))
+      canvas.height = Math.max(1, Math.min(height, device.limits.maxTextureDimension2D))
+      render()
+    }
+  })
+
+  resizeObserver.observe(canvas)
 
   // Load and compile the compute shader code into a shader module
   const computeCode = await loadFile('../src/fundamentals/compute.wgsl')
