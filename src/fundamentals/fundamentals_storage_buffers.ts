@@ -1,13 +1,17 @@
+// Fundamnetals, showing how to use Uniforms and Compute shaders.
+// Note: Shows that Uisng Uniforms with many draw calls is not a good idea for large number of objects (Better use storage buffers).
+
 import { loadFile, rand } from '../utils.js'
 
-const sizes = {
+const byteSizes = {
+  f32: 4,
   vec2f: 8,
   vec3f: 12,
   vec4f: 16
 }
 
 const numObjects = 5000
-const objectInfos: Array<{ scale: number, dynamicUniformsBuffer: GPUBuffer, dynamicUniformValues: Float32Array, uniformsBindGroup: GPUBindGroup }> = []
+const objectInfos: Array<{ scale: number }> = []
 
 async function main (): Promise<void> {
   // Initialize WebGPU
@@ -41,7 +45,7 @@ async function main (): Promise<void> {
   })
 
   // Load and compile the shader code into a shader module
-  const shaderCode = await loadFile('../src/fundamentals/shader.wgsl')
+  const shaderCode = await loadFile('../src/fundamentals/shader_storage_buffers.wgsl')
   const shaderModule = device.createShaderModule({
     label: 'shader.wgsl',
     code: shaderCode
@@ -75,43 +79,51 @@ async function main (): Promise<void> {
     ]
   }
 
+  const staticUnitSizeInBytes =
+    byteSizes.vec2f + // offset
+    byteSizes.vec2f + // padding, 16 byte alignment!
+    byteSizes.vec4f * 3 // colors, 1 for each vertex
+
+  const dynamicUnitSizeInBytes = byteSizes.vec2f // scale
+
+  const staticStorageBuffer = device.createBuffer({
+    label: 'static storage buffer for objects',
+    size: staticUnitSizeInBytes * numObjects,
+    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
+  })
+
+  const dynamicStorageBuffer = device.createBuffer({
+    label: 'dynamic storage buffer for objects',
+    size: dynamicUnitSizeInBytes * numObjects,
+    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
+  })
+
+  const staticStorageValues = new Float32Array(staticStorageBuffer.size / byteSizes.f32)
+  const offsetOffset = 0
+  const colorOffset = 4
+
   for (let i = 0; i < numObjects; i++) {
-    // Uniforms
-    const staticUniformsBuffer = device.createBuffer({
-      label: `static uniforms buffer for object ${i}`,
-      size: sizes.vec2f,
-      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-    })
-
-    const dynamicUniformsBuffer = device.createBuffer({
-      label: `dynamic uniforms buffer for object ${i}`,
-      size: sizes.vec2f,
-      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-    })
-
-    const staticUniformValues = new Float32Array(2)
-    staticUniformValues.set([rand(-0.9, 0.9), rand(-0.9, 0.9)], 0) // offset value
-
-    device.queue.writeBuffer(staticUniformsBuffer, 0, staticUniformValues.buffer)
-
-    const dynamicUniformValues = new Float32Array(2)
-
-    const uniformsBindGroup = device.createBindGroup({
-      label: `uniforms bind group for object ${i}`,
-      layout: renderPipeline.getBindGroupLayout(0),
-      entries: [
-        { binding: 0, resource: { buffer: staticUniformsBuffer } },
-        { binding: 1, resource: { buffer: dynamicUniformsBuffer } }
-      ]
-    })
-
+    const staticStorageBufferOffset = (staticUnitSizeInBytes / byteSizes.f32) * i
+    staticStorageValues.set([rand(-0.9, 0.9), rand(-0.9, 0.9)], staticStorageBufferOffset + offsetOffset) // offset value
+    staticStorageValues.set([rand(), rand(), rand(), 1.0], staticStorageBufferOffset + colorOffset) // v1 color value
+    staticStorageValues.set([rand(), rand(), rand(), 1.0], staticStorageBufferOffset + colorOffset + colorOffset) // v1 color value
+    staticStorageValues.set([rand(), rand(), rand(), 1.0], staticStorageBufferOffset + colorOffset + colorOffset + colorOffset) // v1 color value
     objectInfos.push({
-      scale: rand(0.01, 0.1),
-      dynamicUniformsBuffer,
-      dynamicUniformValues,
-      uniformsBindGroup
+      scale: rand(0.01, 0.1)
     })
   }
+  device.queue.writeBuffer(staticStorageBuffer, 0, staticStorageValues.buffer)
+
+  const dynamicStorageBufferValues = new Float32Array(dynamicStorageBuffer.size / byteSizes.f32)
+
+  const storageBuffersBindGroup = device.createBindGroup({
+    label: 'Storage buffer bind group for objects',
+    layout: renderPipeline.getBindGroupLayout(0),
+    entries: [
+      { binding: 0, resource: { buffer: staticStorageBuffer } },
+      { binding: 1, resource: { buffer: dynamicStorageBuffer } }
+    ]
+  })
 
   // Render the triangle
   const render = (): void => {
@@ -120,13 +132,15 @@ async function main (): Promise<void> {
     const commandEncoder = device.createCommandEncoder()
     const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor)
     passEncoder.setPipeline(renderPipeline)
-    for (const objectInfo of objectInfos) {
-      const { scale, dynamicUniformsBuffer, dynamicUniformValues, uniformsBindGroup } = objectInfo
-      dynamicUniformValues.set([scale / aspect, scale], 0) // scale value
-      device.queue.writeBuffer(dynamicUniformsBuffer, 0, dynamicUniformValues.buffer)
-      passEncoder.setBindGroup(0, uniformsBindGroup)
-      passEncoder.draw(3, 1, 0, 0)
-    }
+    objectInfos.forEach((objectInfo, i) => {
+      const offset = (dynamicUnitSizeInBytes / byteSizes.f32) * i
+      const { scale } = objectInfo
+      dynamicStorageBufferValues.set([scale / aspect, scale], offset) // scale value
+    })
+    // Update the dynamic storage buffer once
+    device.queue.writeBuffer(dynamicStorageBuffer, 0, dynamicStorageBufferValues.buffer)
+    passEncoder.setBindGroup(0, storageBuffersBindGroup)
+    passEncoder.draw(3, numObjects, 0, 0) // 3 vertices, numObjects instances
     passEncoder.end()
     const commandBuffer = commandEncoder.finish()
     device.queue.submit([commandBuffer])

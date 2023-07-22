@@ -1,3 +1,5 @@
+// Fundamnetals, showing how to use Uniforms and Compute shaders.
+// Note: Shows that Uisng Uniforms with many draw calls is not a good idea for large number of objects (Better use storage buffers).
 import { loadFile, rand } from '../utils.js';
 const sizes = {
     vec2f: 8,
@@ -35,7 +37,7 @@ async function main() {
         format: canvasFormat
     });
     // Load and compile the shader code into a shader module
-    const shaderCode = await loadFile('../src/fundamentals/shader.wgsl');
+    const shaderCode = await loadFile('../src/fundamentals/shader_uniforms.wgsl');
     const shaderModule = device.createShaderModule({
         label: 'shader.wgsl',
         code: shaderCode

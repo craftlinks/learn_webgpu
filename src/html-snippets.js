@@ -17,5 +17,6 @@ function navigationButtons() {
     else {
         baseURL = 'https://www.craftlinks.art';
     }
-    return `<a href = "${baseURL}/pages/fundamentals.html" class="button">Fundamentals</a>`;
+    return `<a href = "${baseURL}/pages/fundamentals-uniforms.html" class="button">Fundamentals - Uniforms </a>
+  <a href = "${baseURL}/pages/fundamentals-storage_buffers.html" class="button">Fundamentals - Storage Buffers </a>`;
 }
