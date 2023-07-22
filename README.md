@@ -11,3 +11,5 @@ npm run build
 ```
 
 In Visual Studio Code, install the [`Live Server`](https://marketplace.visualstudio.com/items?itemName=ritwickdey.LiveServer) extension. Then, open the `index.html` file in the root folder and click the `Go Live` button at the bottom of the window.
+
+<img src="./pages/fundamentals.png" width="500" height="475">

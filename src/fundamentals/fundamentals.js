@@ -1,4 +1,11 @@
-import { loadFile } from '../utils.js';
+import { loadFile, rand } from '../utils.js';
+const sizes = {
+    vec2f: 8,
+    vec3f: 12,
+    vec4f: 16
+};
+const numObjects = 5000;
+const objectInfos = [];
 async function main() {
     // Initialize WebGPU
     const adapter = await navigator.gpu?.requestAdapter();
@@ -34,7 +41,7 @@ async function main() {
         code: shaderCode
     });
     // Create a render pipeline
-    const pipeline = device.createRenderPipeline({
+    const renderPipeline = device.createRenderPipeline({
         label: 'render pipeline',
         layout: 'auto',
         vertex: {
@@ -59,13 +66,51 @@ async function main() {
             }
         ]
     };
+    for (let i = 0; i < numObjects; i++) {
+        // Uniforms
+        const staticUniformsBuffer = device.createBuffer({
+            label: `static uniforms buffer for object ${i}`,
+            size: sizes.vec2f,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+        });
+        const dynamicUniformsBuffer = device.createBuffer({
+            label: `dynamic uniforms buffer for object ${i}`,
+            size: sizes.vec2f,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+        });
+        const staticUniformValues = new Float32Array(2);
+        staticUniformValues.set([rand(-0.9, 0.9), rand(-0.9, 0.9)], 0); // offset value
+        device.queue.writeBuffer(staticUniformsBuffer, 0, staticUniformValues.buffer);
+        const dynamicUniformValues = new Float32Array(2);
+        const uniformsBindGroup = device.createBindGroup({
+            label: `uniforms bind group for object ${i}`,
+            layout: renderPipeline.getBindGroupLayout(0),
+            entries: [
+                { binding: 0, resource: { buffer: staticUniformsBuffer } },
+                { binding: 1, resource: { buffer: dynamicUniformsBuffer } }
+            ]
+        });
+        objectInfos.push({
+            scale: rand(0.01, 0.1),
+            dynamicUniformsBuffer,
+            dynamicUniformValues,
+            uniformsBindGroup
+        });
+    }
     // Render the triangle
     const render = () => {
         renderPassDescriptor.colorAttachments[Symbol.iterator]().next().value.view = context.getCurrentTexture().createView(); // For Canvas resize
+        const aspect = Math.abs(canvas.width / canvas.height);
         const commandEncoder = device.createCommandEncoder();
         const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
-        passEncoder.setPipeline(pipeline);
-        passEncoder.draw(3, 1, 0, 0);
+        passEncoder.setPipeline(renderPipeline);
+        for (const objectInfo of objectInfos) {
+            const { scale, dynamicUniformsBuffer, dynamicUniformValues, uniformsBindGroup } = objectInfo;
+            dynamicUniformValues.set([scale / aspect, scale], 0); // scale value
+            device.queue.writeBuffer(dynamicUniformsBuffer, 0, dynamicUniformValues.buffer);
+            passEncoder.setBindGroup(0, uniformsBindGroup);
+            passEncoder.draw(3, 1, 0, 0);
+        }
         passEncoder.end();
         const commandBuffer = commandEncoder.finish();
         device.queue.submit([commandBuffer]);
