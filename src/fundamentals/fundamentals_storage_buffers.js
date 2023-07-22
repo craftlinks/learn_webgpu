@@ -7,7 +7,7 @@ const byteSizes = {
     vec3f: 12,
     vec4f: 16
 };
-const numObjects = 50000;
+const numObjects = 500000;
 const objectInfos = [];
 function createCircleVertices({ radius = 1, numSubdivisions = 48, innerRadius = 0, startAngle = 0, endAngle = Math.PI * 2 } = {}) {
     // 2 triangles per subdivision, 3 verts per tri, 2 values (xy) each.
@@ -123,7 +123,7 @@ async function main() {
     device.queue.writeBuffer(staticStorageBuffer, 0, staticStorageValues.buffer);
     const dynamicStorageBufferValues = new Float32Array(dynamicStorageBuffer.size / byteSizes.f32);
     // setup a storage buffer with vertex data
-    const { vertexData, numVertices } = createCircleVertices({ radius: 0.1, innerRadius: 0, numSubdivisions: 12 });
+    const { vertexData, numVertices } = createCircleVertices({ radius: 0.1, innerRadius: 0.05, numSubdivisions: 12 });
     const vertexStorageBuffer = device.createBuffer({
         label: 'storage buffer vertices',
         size: vertexData.byteLength,

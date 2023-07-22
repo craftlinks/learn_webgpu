@@ -10,7 +10,7 @@ const byteSizes = {
   vec4f: 16
 }
 
-const numObjects = 50000
+const numObjects = 500000
 const objectInfos: Array<{ scale: number }> = []
 
 function createCircleVertices ({
@@ -154,7 +154,7 @@ async function main (): Promise<void> {
   const dynamicStorageBufferValues = new Float32Array(dynamicStorageBuffer.size / byteSizes.f32)
 
   // setup a storage buffer with vertex data
-  const { vertexData, numVertices } = createCircleVertices({ radius: 0.1, innerRadius: 0, numSubdivisions: 12 })
+  const { vertexData, numVertices } = createCircleVertices({ radius: 0.1, innerRadius: 0.05, numSubdivisions: 12 })
   const vertexStorageBuffer = device.createBuffer({
     label: 'storage buffer vertices',
     size: vertexData.byteLength,
